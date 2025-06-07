@@ -128,7 +128,39 @@ export default function FusionLab() {
       }
 
       const data = await response.json()
-      setRecipe(data)
+      const recipe = {
+        name: data.choices[0].message.content.split('\n')[0].replace('1. 饮品名称：', '').trim(),
+        ingredients: data.choices[0].message.content
+          .split('\n')
+          .find((line: string) => line.includes('2. 所需原料及用量：'))
+          ?.replace('2. 所需原料及用量：', '')
+          .split(',')
+          .map((ing: string) => ing.trim()) || [],
+        steps: data.choices[0].message.content
+          .split('\n')
+          .find((line: string) => line.includes('3. 制作步骤：'))
+          ?.replace('3. 制作步骤：', '')
+          .split('.')
+          .map((step: string) => step.trim())
+          .filter((step: string) => step) || [],
+        taste: data.choices[0].message.content
+          .split('\n')
+          .find((line: string) => line.includes('4. 口感描述：'))
+          ?.replace('4. 口感描述：', '')
+          .trim() || '',
+        difficulty: data.choices[0].message.content
+          .split('\n')
+          .find((line: string) => line.includes('5. 难度等级：'))
+          ?.replace('5. 难度等级：', '')
+          .trim() || '',
+        time: parseInt(data.choices[0].message.content
+          .split('\n')
+          .find((line: string) => line.includes('6. 制作时间：'))
+          ?.replace('6. 制作时间：', '')
+          .replace('分钟', '')
+          .trim() || '0')
+      }
+      setRecipe(recipe)
       setGenerated(true)
       toast.success('配方生成成功！')
     } catch (error) {

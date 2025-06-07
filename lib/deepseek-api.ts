@@ -1,41 +1,38 @@
+import { OpenAI } from 'openai';
 import { z } from 'zod';
 
 // 定义 API 响应的类型
-const DeepSeekResponseSchema = z.object({
+const OpenRouterResponseSchema = z.object({
   id: z.string(),
   choices: z.array(z.object({
     message: z.object({
       role: z.string(),
-      content: z.string(),
-      reasoning_content: z.string().optional(),
-      tool_calls: z.array(z.object({
-        id: z.string(),
-        type: z.string(),
-        function: z.object({
-          name: z.string(),
-          arguments: z.string()
-        })
-      })).optional()
+      content: z.string()
     }),
     finish_reason: z.string()
   })),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-    total_tokens: z.number()
-  }),
   created: z.number(),
-  model: z.string(),
-  object: z.string()
+  model: z.string()
 });
 
-export type DeepSeekResponse = z.infer<typeof DeepSeekResponseSchema>;
+export type OpenRouterResponse = z.infer<typeof OpenRouterResponseSchema>;
+
+// 初始化 OpenAI 客户端
+const client = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+  defaultHeaders: {
+    'HTTP-Referer': process.env.SITE_URL || 'http://localhost:3000',
+    'X-Title': process.env.SITE_NAME || 'Palmix',
+    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
+  }
+});
 
 // 定义生成饮品配方的函数
 export async function generateBeverageRecipe(
   preferences: string,
   availableIngredients: string[] = []
-): Promise<DeepSeekResponse> {
+): Promise<OpenRouterResponse> {
   const prompt = `作为一个专业的调酒师，请根据以下信息生成一个饮品配方：
 偏好：${preferences}
 可用原料：${availableIngredients.join(', ')}
@@ -48,43 +45,35 @@ export async function generateBeverageRecipe(
 5. 难度等级（简单/中等/困难）
 6. 制作时间（分钟）`;
 
-  const options = {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: "Qwen/QwQ-32B",
+  try {
+    console.log('Sending request to OpenRouter API with headers:', {
+      'HTTP-Referer': process.env.SITE_URL,
+      'X-Title': process.env.SITE_NAME,
+      'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY?.slice(0, 10) + '...'
+    });
+
+    const completion = await client.chat.completions.create({
+      model: "deepseek/deepseek-chat-v3-0324",
       messages: [{
         role: "user",
         content: prompt
-      }],
-      stream: false,
-      max_tokens: 1024,
-      temperature: 0.7,
-      top_p: 0.7,
-      top_k: 50,
-      frequency_penalty: 0.5,
-      n: 1,
-      response_format: {
-        type: "text"
-      }
-    })
-  };
+      }]
+    });
 
-  try {
-    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', options);
-    const data = await response.json();
-    return DeepSeekResponseSchema.parse(data);
-  } catch (error) {
-    console.error('Error calling DeepSeek API:', error);
-    throw new Error('Failed to generate beverage recipe');
+    return OpenRouterResponseSchema.parse(completion);
+  } catch (error: any) {
+    console.error('Error calling OpenRouter API:', {
+      message: error.message,
+      status: error.status,
+      headers: error.headers,
+      code: error.code
+    });
+    throw new Error(`Failed to generate beverage recipe: ${error.message}`);
   }
 }
 
 // 定义解析 AI 响应的函数
-export function parseRecipeResponse(response: DeepSeekResponse) {
+export function parseRecipeResponse(response: OpenRouterResponse) {
   const content = response.choices[0].message.content;
   
   // 使用正则表达式解析内容

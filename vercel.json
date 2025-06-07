@@ -3,6 +3,5 @@
   "installCommand": "pnpm install",
   "buildCommand": "pnpm run build",
   "outputDirectory": ".next",
-  "regions": ["sin1", "sfo1"],
-  "nodeVersion": "18.x"
+  "regions": ["sin1", "sfo1"]
 } 

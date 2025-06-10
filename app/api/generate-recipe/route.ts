@@ -12,14 +12,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 添加调试日志
-    console.log('API Key:', process.env.OPENROUTER_API_KEY ? '已设置' : '未设置');
-    console.log('Site URL:', process.env.SITE_URL);
-    console.log('Site Name:', process.env.SITE_NAME);
-
-    if (!process.env.OPENROUTER_API_KEY) {
+    // 检查是否有任何API密钥可用
+    const hasApiKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.OPENROUTER_API_KEY;
+    
+    if (!hasApiKey) {
+      console.error('没有配置API密钥 - 需要OPENAI_API_KEY, DEEPSEEK_API_KEY或OPENROUTER_API_KEY之一');
       return NextResponse.json(
-        { error: 'API 密钥未配置' },
+        { error: 'API密钥未配置，无法生成配方' },
         { status: 500 }
       );
     }

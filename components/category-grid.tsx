@@ -92,7 +92,12 @@ function getCategoryIcon(id: string, color: string, className: string) {
   }
 }
 
-export default function CategoryGrid({ onCategorySelect }) {
+// 添加类型注解
+interface CategoryGridProps {
+  onCategorySelect: (id: string) => void
+}
+
+export default function CategoryGrid({ onCategorySelect }: CategoryGridProps) {
   return (
     <div className="space-y-8 relative min-h-[520px]">
       {/* 左侧热带棕榈树/椰子树剪影 */}
@@ -137,19 +142,19 @@ export default function CategoryGrid({ onCategorySelect }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {categories.map((category) => (
           <div
             key={category.id}
             onClick={() => onCategorySelect(category.id)}
-            className={`${category.bgColor} rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 border ${category.borderColor}`}
+            className={`bg-[#23232a] rounded-xl p-6 cursor-pointer border border-[#444] hover:border-yellow-400 hover:shadow-lg transition-all duration-200 hover:scale-105 flex flex-col items-start`}
           >
-            <div className="flex items-center justify-between mb-4">
-              {getCategoryIcon(category.id, category.color, "h-12 w-12")}
-              <span className={`text-sm font-medium ${category.textColor}`}>{category.count}</span>
+            <div className="flex items-center justify-between w-full mb-4">
+              {getCategoryIcon(category.id, category.color, "h-16 w-16")}
+              <span className={`text-sm font-medium text-gray-400`}>{category.count}</span>
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">{category.title}</h3>
-            <p className="text-gray-300">{category.subtitle}</p>
+            <p className="text-gray-400">{category.subtitle}</p>
           </div>
         ))}
       </div>

@@ -1,95 +1,97 @@
 import { OpenAI } from 'openai';
 import { z } from 'zod';
 
-// 定义 API 响应的类型
-const OpenRouterResponseSchema = z.object({
-  id: z.string(),
-  choices: z.array(z.object({
-    message: z.object({
-      role: z.string(),
-      content: z.string()
-    }),
-    finish_reason: z.string()
-  })),
-  created: z.number(),
-  model: z.string()
-});
+// Define API response types
+interface RecipeResponse {
+  name: string;
+  ingredients: string[];
+  steps: string[];
+  description: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  time: number;
+}
 
-export type OpenRouterResponse = z.infer<typeof OpenRouterResponseSchema>;
-
-// 初始化 OpenAI 客户端
+// Initialize OpenAI client
 const client = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    'HTTP-Referer': process.env.SITE_URL || 'http://localhost:3000',
-    'X-Title': process.env.SITE_NAME || 'Palmix',
-    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
-  }
+  apiKey: process.env.DEEPSEEK_API_KEY,
 });
 
-// 定义生成饮品配方的函数
-export async function generateBeverageRecipe(
+// Define function to generate beverage recipe
+export async function generateRecipe(
   preferences: string,
-  availableIngredients: string[] = []
-): Promise<OpenRouterResponse> {
-  const prompt = `作为一个专业的调酒师，请根据以下信息生成一个饮品配方：
-偏好：${preferences}
-可用原料：${availableIngredients.join(', ')}
-
-请提供：
-1. 饮品名称
-2. 所需原料及用量
-3. 制作步骤
-4. 口感描述
-5. 难度等级（简单/中等/困难）
-6. 制作时间（分钟）`;
+  availableIngredients: string[]
+): Promise<RecipeResponse> {
+  const prompt = `As a professional bartender, please generate a beverage recipe based on the following information:
+  Preferences: ${preferences}
+  Available ingredients: ${availableIngredients.join(', ')}
+  
+  Please provide:
+  1. Beverage name
+  2. Required ingredients and quantities
+  3. Preparation steps
+  4. Taste description
+  5. Difficulty level (Easy/Medium/Hard)
+  6. Preparation time (in minutes)`;
 
   try {
-    console.log('Sending request to OpenRouter API with headers:', {
-      'HTTP-Referer': process.env.SITE_URL,
-      'X-Title': process.env.SITE_NAME,
-      'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY?.slice(0, 10) + '...'
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional bartender with extensive experience in creating unique and delicious beverages."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
     });
 
-    const completion = await client.chat.completions.create({
-      model: "deepseek/deepseek-chat-v3-0324",
-      messages: [{
-        role: "user",
-        content: prompt
-      }]
-    });
+    // Parse AI response
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No response from AI");
+    }
 
-    return OpenRouterResponseSchema.parse(completion);
-  } catch (error: any) {
-    console.error('Error calling OpenRouter API:', {
-      message: error.message,
-      status: error.status,
-      headers: error.headers,
-      code: error.code
-    });
-    throw new Error(`Failed to generate beverage recipe: ${error.message}`);
+    // Parse the response into structured data
+    const lines = content.split('\n');
+    const recipe: RecipeResponse = {
+      name: lines[0].replace(/^1\.\s*/, ''),
+      ingredients: lines[1].split(',').map(i => i.trim()),
+      steps: lines[2].split('.').map(s => s.trim()).filter(Boolean),
+      description: lines[3],
+      difficulty: lines[4].includes('Easy') ? 'Easy' : lines[4].includes('Hard') ? 'Hard' : 'Medium',
+      time: parseInt(lines[5]) || 5
+    };
+
+    return recipe;
+  } catch (error) {
+    console.error('Error generating recipe:', error);
+    throw error;
   }
 }
 
 // 定义解析 AI 响应的函数
-export function parseRecipeResponse(response: OpenRouterResponse) {
-  const content = response.choices[0].message.content;
+export function parseRecipeResponse(response: RecipeResponse) {
+  const content = response.description;
   
   // 使用正则表达式解析内容
-  const nameMatch = content.match(/饮品名称[：:]\s*(.+)/);
-  const ingredientsMatch = content.match(/所需原料[：:]\s*([\s\S]+?)(?=制作步骤|$)/);
-  const stepsMatch = content.match(/制作步骤[：:]\s*([\s\S]+?)(?=口感描述|$)/);
-  const tasteMatch = content.match(/口感描述[：:]\s*([\s\S]+?)(?=难度等级|$)/);
-  const difficultyMatch = content.match(/难度等级[：:]\s*(.+)/);
-  const timeMatch = content.match(/制作时间[：:]\s*(\d+)/);
+  const nameMatch = content.match(/Beverage name[：:]\s*(.+)/);
+  const ingredientsMatch = content.match(/Required ingredients and quantities[：:]\s*([\s\S]+?)(?=Preparation steps|$)/);
+  const stepsMatch = content.match(/Preparation steps[：:]\s*([\s\S]+?)(?=Taste description|$)/);
+  const tasteMatch = content.match(/Taste description[：:]\s*([\s\S]+?)(?=Difficulty level|$)/);
+  const difficultyMatch = content.match(/Difficulty level[：:]\s*(.+)/);
+  const timeMatch = content.match(/Preparation time[：:]\s*(\d+)/);
 
   return {
-    name: nameMatch?.[1]?.trim() || '未知饮品',
+    name: nameMatch?.[1]?.trim() || 'Unknown Beverage',
     ingredients: ingredientsMatch?.[1]?.trim().split('\n').filter(Boolean) || [],
     steps: stepsMatch?.[1]?.trim().split('\n').filter(Boolean) || [],
-    taste: tasteMatch?.[1]?.trim() || '未提供',
-    difficulty: difficultyMatch?.[1]?.trim() || '中等',
+    taste: tasteMatch?.[1]?.trim() || 'Not provided',
+    difficulty: difficultyMatch?.[1]?.trim() || 'Medium',
     time: parseInt(timeMatch?.[1] || '5', 10)
   };
 } 

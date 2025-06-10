@@ -9,7 +9,7 @@ import {
   FusionBeaker,
   SeasonalGlass,
 } from "@/components/cup-icons"
-import { recipeData } from "@/lib/recipe-data"
+import { getUpdatedRecipeData } from "@/lib/cocktail-recipes"
 import type { Recipe, Ingredient } from "@/app/page"
 
 interface RecipeGridProps {
@@ -38,9 +38,13 @@ function getCategoryIcon(id: string, color: string, className: string) {
 }
 
 export default function RecipeGrid({ category, onRecipeClick, searchTerm = "" }: RecipeGridProps) {
-  // 为每个recipe自动补id，保证类型安全
-  const recipes: Recipe[] = ((recipeData as Record<string, any[]>)[category] || []).map((r, idx) => ({
-    id: (r.name + '-' + r.category).replace(/\s+/g, '-').toLowerCase(),
+  // 使用更新后的配方数据
+  const recipeData = getUpdatedRecipeData()
+  
+  // 为每个recipe自动补id和确保category正确
+  const recipes: Recipe[] = ((recipeData as Record<string, any[]>)[category] || []).map((r: any, idx) => ({
+    id: r.id || (r.name + '-' + r.category).replace(/\s+/g, '-').toLowerCase(),
+    category: category, // 确保category正确设置为当前显示的类别
     ...r
   }))
 
@@ -74,6 +78,8 @@ export default function RecipeGrid({ category, onRecipeClick, searchTerm = "" }:
     return colors[cat] || "#6B7280"
   }
 
+  console.log(`Rendering ${category} recipes:`, filteredRecipes.length)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -84,12 +90,12 @@ export default function RecipeGrid({ category, onRecipeClick, searchTerm = "" }:
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {filteredRecipes.map((recipe: Recipe, index: number) => (
           <div
-            key={index}
+            key={recipe.id || index}
             onClick={() => onRecipeClick(recipe)}
             className="bg-gray-800 rounded-xl shadow-md border border-gray-700 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
           >
             <div className="flex justify-center mb-4">
-              {getCategoryIcon(recipe.category || category, getCategoryColor(recipe.category || category), "h-16 w-16")}
+              {getCategoryIcon(category, getCategoryColor(category), "h-16 w-16")}
             </div>
 
             <h3 className="font-semibold text-white text-center mb-2">{recipe.name}</h3>

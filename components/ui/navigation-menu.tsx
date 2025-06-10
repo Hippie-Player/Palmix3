@@ -37,12 +37,12 @@ const NavigationMenuList = React.forwardRef<
   >
     <NavigationMenuItem>
       <NavigationMenuLink href="/photo-recognition" className="font-medium text-base text-muted-foreground hover:text-white transition-colors">
-        拍照识图
+        Photo Recognition
       </NavigationMenuLink>
     </NavigationMenuItem>
     <NavigationMenuItem>
       <NavigationMenuLink href="/profile" className="font-medium text-base text-muted-foreground hover:text-white transition-colors">
-        我的
+        My Profile
       </NavigationMenuLink>
     </NavigationMenuItem>
   </NavigationMenuPrimitive.List>

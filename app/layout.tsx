@@ -4,9 +4,23 @@ import { Inter, Playfair_Display, Caveat } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" })
-const caveat = Caveat({ subsets: ["latin"], variable: "--font-caveat" })
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: 'swap',
+})
+
+const playfair = Playfair_Display({ 
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: 'swap',
+})
+
+const caveat = Caveat({ 
+  subsets: ["latin"],
+  variable: "--font-caveat",
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: "Palmix - Premium Beverage Recipes",
@@ -22,7 +36,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
       </head>
       <body className={`${inter.variable} ${playfair.variable} ${caveat.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
